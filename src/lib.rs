@@ -13,34 +13,39 @@ pub fn convert_name(tree: &str, base: &str) -> String {
         return Url::parse(&tree).unwrap().join(base).unwrap().to_string();
     } else if url::Url::parse(&base).is_ok() {
         return base.to_string();
-    } else  {
-        Path::new(&tree).parent().unwrap().join(base).to_str().unwrap().to_owned()
+    } else {
+        Path::new(&tree)
+            .parent()
+            .unwrap()
+            .join(base)
+            .to_str()
+            .unwrap()
+            .to_owned()
     }
 }
 
-pub fn read(base: &str)  -> String {
+pub fn read(base: &str) -> String {
     if url::Url::parse(&base).is_ok() {
-        println!("is ok");
-        match reqwest::blocking::get(base){
-          Ok(v) => match v.text() {
+        match reqwest::blocking::get(base) {
+            Ok(v) => match v.text() {
+                Ok(v) => v,
+                Err(_) => {
+                    unimplemented!()
+                }
+            },
+            Err(_) => {
+                unimplemented!()
+            }
+        }
+    } else {
+        match std::fs::read_to_string(base) {
             Ok(v) => v,
             Err(_) => {
-              unimplemented!()
+                println!("{}", base);
+                unimplemented!()
             }
-          },
-          Err(_) => {
-            unimplemented!()
-          }
         }
-      } else {
-        match std::fs::read_to_string(base) {
-          Ok(v) => v,
-          Err(_) => {
-            println!("{}", base);
-            unimplemented!()
-          }
-        }
-      }
+    }
 }
 impl Node {
     pub fn new(tree: &str, base: &str) -> Self {
@@ -64,5 +69,16 @@ pub fn base(url: &str) -> Node {
     Node {
         content: read(url),
         base: url.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::base;
+    #[test]
+    fn relative_path() {
+        let mut pathify = base("./src/lib.rs");
+        let file2 = pathify.add_node("./main.rs");
+        assert_eq!(file2.base, "./src\\./main.rs".to_string());
     }
 }
